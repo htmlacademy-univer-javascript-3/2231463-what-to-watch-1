@@ -1,8 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.min.css';
 import App from './components/app/app';
-import { reviews } from './mocks/reviews';
 import { store } from './store';
 import { checkAuthAction, fetchFilmsAction } from './store/api-actions';
 
@@ -119,7 +120,8 @@ root.render(
       </svg>
     </div>
     <Provider store={store}>
-      <App reviews={reviews} />
+      <ToastContainer />
+      <App />
     </Provider>
   </React.StrictMode>,
 );

@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import MainPage from '../../pages/main-page/main-page';
 import MyListPage from '../../pages/my-list-page/my-list-page';
 import SignInPage from '../../pages/sign-in-page/sign-in-page';
@@ -9,17 +9,13 @@ import PlayerPage from '../../pages/player-page/player-page';
 import NotFoundPage from '../../pages/not-found-page/not-found-page';
 import { AppRoute } from '../../const';
 import PrivateRoute from '../private-route/private-route';
-import { Review } from '../../types/review';
 import { useAppSelector } from '../../hooks/index';
 import Loader from '../loader/loader';
+import HsitoryRouter from '../history-router/history-router';
+import browserHistory from '../../browser-history';
 
-type Props = {
-  reviews: Review[];
-}
-
-const App: FC<Props> = (props) => {
+const App: FC = () => {
   const { isDataLoaded, films, authorizationStatus } = useAppSelector((state) => state);
-  const { reviews } = props;
 
   if (!isDataLoaded){
     return <Loader />;
@@ -28,7 +24,7 @@ const App: FC<Props> = (props) => {
   const promoFilm = films[0];
 
   return (
-    <BrowserRouter>
+    <HsitoryRouter history={browserHistory}>
       <Routes>
         <Route path={AppRoute.Main} element={<MainPage promoFilm={promoFilm} />} />
         <Route
@@ -40,12 +36,19 @@ const App: FC<Props> = (props) => {
           }
         />
         <Route path={AppRoute.SignIn} element={<SignInPage />} />
-        <Route path={AppRoute.Film} element={<MoviePage film={films[0]} films={films} reviews={reviews} />} />
-        <Route path={AppRoute.AddReview} element={<AddReviewPage film={films[0]}/>} />
+        <Route path={AppRoute.Film} element={<MoviePage />} />
+        <Route
+          path={AppRoute.AddReview}
+          element={
+            <PrivateRoute authorizationStatus={authorizationStatus}>
+              <AddReviewPage />
+            </PrivateRoute>
+          }
+        />
         <Route path={AppRoute.Player} element={<PlayerPage film={films[0]} />} />
         <Route path={AppRoute.Default} element={<NotFoundPage />} />
       </Routes>
-    </BrowserRouter>
+    </HsitoryRouter>
   );
 };
 

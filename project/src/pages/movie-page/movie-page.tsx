@@ -1,47 +1,83 @@
-import { FC } from 'react';
+import { FC, useEffect, useState } from 'react';
+import { StatusCodes } from 'http-status-codes';
+import { AxiosError } from 'axios';
+import { AuthorizationStatus } from '../../const';
 import { Film } from '../../types/film';
 import { Review } from '../../types/review';
+import { api } from '../../services/api';
+import { useParams } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../../hooks';
+import { redirectToRoute } from '../../store/action';
+import { AppRoute } from '../../const';
 import FilmsList from '../../components/films-list/films-list';
 import MovieTabs from '../../components/movie-tabs/movie-tabs';
 import UserBlock from '../../components/user-block/user-block';
+import Logo from '../../components/logo/logo';
+import Loader from '../../components/loader/loader';
 
-type Props = {
-  film: Film;
-  films: Film[];
-  reviews: Review[];
-}
+const MoviePage: FC = () => {
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [film, setFilm] = useState<null | Film>(null);
+  const [similarFilms, setSimilarFilms] = useState<null | Film[]>(null);
+  const [reviews, setReviews] = useState<null | Review[]>(null);
+  const { authorizationStatus } = useAppSelector((state) => state);
+  const { id } = useParams();
+  const dispatch = useAppDispatch();
 
-const MoviePage: FC<Props> = (props) => {
-  const { film, films, reviews } = props;
+  useEffect(() => {
+    window.scroll({top: 0, behavior: 'smooth'});
+
+    const fetchFilm = async () => {
+      const { data: filmInfo } = await api.get<Film>(`/films/${id || -1}`);
+      setFilm(filmInfo);
+    };
+    const fetchSimilarFilms = async () => {
+      const { data: films } = await api.get<Film[]>(`/films/${id || -1}/similar`);
+      setSimilarFilms(films);
+    };
+    const fetchFilmReviews = async () => {
+      const { data: filmReviews } = await api.get<Review[]>(`/comments/${id || -1}`);
+      setReviews(filmReviews);
+    };
+
+    setDataLoaded(false);
+    fetchFilm()
+      .then(() => fetchSimilarFilms())
+      .then(() => fetchFilmReviews())
+      .then(() => setDataLoaded(true))
+      .catch((err: AxiosError) => {
+        if (err.response && err.response.status === StatusCodes.NOT_FOUND) {
+          dispatch(redirectToRoute(AppRoute.NotFound));
+        }
+      });
+  }, [id]);
+
+  if (!dataLoaded) {
+    return <Loader />;
+  }
 
   return (
     <>
       <section className="film-card film-card--full">
         <div className="film-card__hero">
           <div className="film-card__bg">
-            <img src={film.backgroundImage} alt={film.name} />
+            <img src={film?.backgroundImage} alt={film?.name} />
           </div>
 
           <h1 className="visually-hidden">WTW</h1>
 
           <header className="page-header film-card__head">
-            <div className="logo">
-              <a href="main.html" className="logo__link">
-                <span className="logo__letter logo__letter--1">W</span>
-                <span className="logo__letter logo__letter--2">T</span>
-                <span className="logo__letter logo__letter--3">W</span>
-              </a>
-            </div>
+            <Logo />
 
             <UserBlock />
           </header>
 
           <div className="film-card__wrap">
             <div className="film-card__desc">
-              <h2 className="film-card__title">{film.name}</h2>
+              <h2 className="film-card__title">{film?.name}</h2>
               <p className="film-card__meta">
-                <span className="film-card__genre">{film.genre}</span>
-                <span className="film-card__year">{film.released}</span>
+                <span className="film-card__genre">{film?.genre}</span>
+                <span className="film-card__year">{film?.released}</span>
               </p>
 
               <div className="film-card__buttons">
@@ -58,7 +94,10 @@ const MoviePage: FC<Props> = (props) => {
                   <span>My list</span>
                   <span className="film-card__count">9</span>
                 </button>
-                <a href="add-review.html" className="btn film-card__button">Add review</a>
+                {
+                  authorizationStatus === AuthorizationStatus.Auth &&
+                  <a href={id ? `/films/${id}/review` : '#'} className="btn film-card__button">Add review</a>
+                }
               </div>
             </div>
           </div>
@@ -67,10 +106,10 @@ const MoviePage: FC<Props> = (props) => {
         <div className="film-card__wrap film-card__translate-top">
           <div className="film-card__info">
             <div className="film-card__poster film-card__poster--big">
-              <img src={film.posterImage} alt={film.name} width="218" height="327" />
+              <img src={film?.posterImage} alt={film?.name} width="218" height="327" />
             </div>
 
-            <MovieTabs film={film} reviews={reviews} />
+            {film && reviews && <MovieTabs film={film} reviews={reviews} />}
           </div>
         </div>
       </section>
@@ -79,17 +118,11 @@ const MoviePage: FC<Props> = (props) => {
         <section className="catalog catalog--like-this">
           <h2 className="catalog__title">More like this</h2>
 
-          <FilmsList films={films.filter((filmAnother) => filmAnother.genre === film.genre).splice(0, 4)} />
+          {similarFilms && <FilmsList films={similarFilms} />}
         </section>
 
         <footer className="page-footer">
-          <div className="logo">
-            <a href="main.html" className="logo__link logo__link--light">
-              <span className="logo__letter logo__letter--1">W</span>
-              <span className="logo__letter logo__letter--2">T</span>
-              <span className="logo__letter logo__letter--3">W</span>
-            </a>
-          </div>
+          <Logo light />
 
           <div className="copyright">
             <p>© 2019 What to watch Ltd.</p>

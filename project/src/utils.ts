@@ -6,7 +6,6 @@ export const getFilmUrl = (film: Film): string => {
   return `${bodyUrl}${film.id}`;
 };
 
-
 export const getFormattedRunTime = (minutes: number): string => {
   const resMinutes = minutes % 60;
   const hours = Math.floor(minutes / 60);
